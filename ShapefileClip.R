@@ -42,7 +42,7 @@ csdfls <- csdfls[-c(52:54,56)]
 log <- new_handle(userpwd = "anonymous:anonymous")
 
 #Loop each file name in to download
-#lapply(csdfls, function(csdfls){curl_download(paste0(csdftp,csdfls),destfile = csdfls,handle = log)})
+lapply(csdfls, function(csdfls){curl_download(paste0(csdftp,csdfls),destfile = csdfls,handle = log)})
 
 
 #--------Place FTP--------
@@ -54,28 +54,27 @@ placefls <- unlist(placefls)
 placefls <- placefls[-c(52:54,56)]
 
 #Loop each file name in to download
-#lapply(placefls, function(placefls){curl_download(paste0(placeftp,placefls),destfile = placefls,handle = log)})
+lapply(placefls, function(placefls){curl_download(paste0(placeftp,placefls),destfile = placefls,handle = log)})
 
 
 #--------Hawaii County FTP--------
 #Download Hawaii County shapefile
-#curl_download("ftp://ftp2.census.gov/geo/tiger/TIGER2010/COUNTY/2000/tl_2010_15_county00.zip",
-#              destfile = "tl_2010_15_county00.zip",handle = log)
+curl_download("ftp://ftp2.census.gov/geo/tiger/TIGER2010/COUNTY/2000/tl_2010_15_county00.zip",
+              destfile = "tl_2010_15_county00.zip",handle = log)
 rm(csdftp,placeftp,log)
 
 
 #--------Processing--------
 #Unzip files
-#Again, these two lines will take a while to process
-#lapply(csdfls,function(csdfls){unzip(csdfls)})
-#lapply(placefls,function(placefls){unzip(placefls)})
-#unzip("tl_2010_15_county00.zip")
+#These two lines may take a while to process
+lapply(csdfls,function(csdfls){unzip(csdfls)})
+lapply(placefls,function(placefls){unzip(placefls)})
+unzip("tl_2010_15_county00.zip")
 
 #Delete original zip files
-#Caution: Deleting the CSD files takes a very long time.
-#lapply(csdfls,function(csdfls){unlink(csdfls)})
-#lapply(placefls,function(placefls){unlink(placefls)})
-#unlink("tl_2010_15_county00.zip")
+lapply(csdfls,function(csdfls){unlink(csdfls)})
+lapply(placefls,function(placefls){unlink(placefls)})
+unlink("tl_2010_15_county00.zip")
 
 #Change .zip list to .shp list
 csdshp <- sub(".zip",".shp",csdfls)
@@ -114,10 +113,25 @@ colnames(csdselect)[4] <- "FIPS"
 colnames(plcselect)[3] <- "FIPS"
 colnames(hiselect)[3] <- "FIPS"
 
+#Remove CSD Towns identical to Places
+setwd("G:/Shared drives/Squeeze Project/FIPS SDWIS Matching/Base/SelectedGeog")
+#Uncomment only if you're scripting from this point forward
+#csdselect <- read_sf("USCSDs2000.shp")
+#plcselect <- read_sf("USPlaces2000.shp")
+#hiselect <- read_sf("HICounties2000.shp")
+csddupe <- na.omit(match(plcselect$geometry,csdselect$geometry))
+csdrm <- csdselect[csddupe,]
+csdselect <- csdselect[-csddupe,]
+rm(csddupe)
+
+#Save list of removed towns for later comparison
+csdexp <- st_drop_geometry(csdrm)
+write.csv(csdexp,"../../Output/Removed Duplicate CSD Towns.csv",row.names = FALSE)
+
 
 #--------Finalizing--------
 #Export new shapefiles
-setwd("../")
-write_sf(plcselect,"SelectedGeog","USPlaces2000",driver = "ESRI Shapefile")
-write_sf(csdselect,"SelectedGeog","USCSDs2000",driver = "ESRI Shapefile")
-write_sf(hiselect,"SelectedGeog","HICounties2000",driver = "ESRI Shapefile")
+write_sf(plcselect,".","USPlaces2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
+write_sf(csdselect,".","USCSDs2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
+write_sf(csdrm,".","USRemovedCSDs2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
+write_sf(hiselect,".","HICounties2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
