@@ -126,7 +126,7 @@ rm(csddupe)
 
 #Save list of removed towns for later comparison
 csdexp <- st_drop_geometry(csdrm)
-write.csv(csdexp,"../../Output/Removed Duplicate CSD Towns.csv",row.names = FALSE)
+write.csv(csdexp,"../../Lists/Removed Duplicate CSD Towns.csv",row.names = FALSE)
 
 
 #--------Finalizing--------
