@@ -4,7 +4,7 @@
 #Data: 2000 Census TIGER/Line Place and CSD Shapefiles
 #RA: Katelynn Conedera
 #Created: 7.22.2021
-#Last updated: 7.28.2021
+#Last updated: 10.26.2021
 
 #This script imports and and unzips all US County Subdivision and Place shape files from the Census Tiger/Line ftp site.
 #Please note that because of the size of the data and number of files downloaded, this takes a while to process.
@@ -58,14 +58,6 @@ placefls <- placefls[-c(52:54,56)]
 lapply(placefls, function(placefls){curl_download(paste0(placeftp,placefls),destfile = placefls,handle = log)})
 
 
-#--------Hawaii County FTP--------
-#Download Hawaii County shapefile
-cntyftp <- "ftp://ftp2.census.gov/geo/tiger/TIGER2010/COUNTY/2000/"
-cntyfls <- "tl_2010_15_county00.zip"
-curl_download(paste0(cntyftp,cntyfls),destfile = cntyfls,handle = log)
-rm(csdftp,placeftp,cntyftp,log)
-
-
 #--------Processing--------
 #Unzip files
 lapply(csdfls,function(csdfls){unzip(csdfls)})
@@ -96,7 +88,6 @@ rm(csdall,placeall)
 #Save shape files
 write_sf(placemerge,".","USPlaces2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
 write_sf(csdmerge,".","USCSDs2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
-write_sf(countyhi,".","HICounties2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
 
 #Remove individual shapefiles
 cntyshp <- sub("shp","*",cntyshp)
@@ -110,31 +101,27 @@ rm(csdshp,placeshp,cntyshp)
 
 #--------Matching--------
 #Uncomment only if you're scripting from this point forward
-#csdmerge <- read_sf("USCSDs2000.shp")
-#placemerge <- read_sf("USPlaces2000.shp")
-#countyhi <- read_sf("HICounties2000.shp")
+csdmerge <- read_sf("USCSDs2000.shp")
+placemerge <- read_sf("USPlaces2000.shp")
 setwd("G:/Shared drives/Squeeze Project/FIPS SDWIS Matching/Base/SelectedGeog")
 
 #Load list of cities
-cities <- read.csv("../../Output/Census Match Base.csv",
-                   colClasses = c("FIPS" = "character"))
+cities <- paste0(list.files("../../Output"), collapse = " ")
+cities <- paste0("../../Output/",str_extract(cities,"Census_Base_Study_Subset_v.\\.csv"))
+cities <- read.csv(cities, colClasses = c("FIPS" = "character"))
 fipsc <- na.omit(ifelse(nchar(cities$FIPS) == 10,cities$FIPS,NA))
 fipsp <- na.omit(ifelse(nchar(cities$FIPS) == 7,cities$FIPS,NA))
-fipshi <- na.omit(ifelse(nchar(cities$FIPS) == 5,cities$FIPS,NA))
 rm(cities)
 
 #Select study cities
 csdselect <- subset(csdmerge,csdmerge$COSBIDFP00 %in% fipsc)
 plcselect <- subset(placemerge,placemerge$PLCIDFP00 %in% fipsp)
-hiselect <- subset(countyhi,countyhi$CNTYIDFP00 %in% fipshi)
-rm(csdmerge,placemerge,countyhi)
-rm(fipsc,fipsp,fipshi)
-
+rm(csdmerge,placemerge)
+rm(fipsc,fipsp)
 
 #Label correct FIPS column
 colnames(csdselect)[4] <- "FIPS"
 colnames(plcselect)[3] <- "FIPS"
-colnames(hiselect)[3] <- "FIPS"
 
 #Remove CSD Towns identical to Places
 csddupe <- na.omit(match(plcselect$geometry,csdselect$geometry))
@@ -150,7 +137,6 @@ rm(csdexp)
 
 #--------Finalizing--------
 #Export new shapefiles
-write_sf(csdselect,".","SelectCSDs2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
-write_sf(csdrm,".","RemovedCSDs2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
-write_sf(plcselect,".","SelectPlaces2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
-write_sf(hiselect,".","SelectHICounties2000",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
+write_sf(csdselect,".","SelectCSDs2000_v2",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
+write_sf(csdrm,".","RemovedCSDs2000_v2",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
+write_sf(plcselect,".","SelectPlaces2000_v2",driver = "ESRI Shapefile",layer_options = c("Overwrite"))
