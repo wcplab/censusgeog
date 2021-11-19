@@ -16,3 +16,17 @@
 
 #Load Census data
 c00 <- read.csv("Output/Census_Base_Geog_Corrected_v2.csv")
+c18 <- read.csv("Output/Census_Base_Geog_Corrected_2018_v1.csv")
+
+#-----Comparing-----
+#Merge the two datasets by FIPS
+colnames(c00)
+colnames(c18)
+all <- merge(c00,c18,by = "FIPS", suffixes = c("_00","_18"), all = TRUE)
+rm(c00,c18)
+
+#Subset those without matches
+all$check <- ifelse(is.na(all$Name_00) | is.na(all$Name_18), "CHECK","")
+miss <- subset(all, check == "CHECK")
+
+#Collapse columns and differentiate by year
